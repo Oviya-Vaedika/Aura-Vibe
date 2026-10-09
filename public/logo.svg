@@ -1,362 +1,445 @@
 const appState = {
   currentView: 'welcome',
-  currentRoom: null,
-  currentMember: null,
   activeTab: 'chat',
-  roomData: null,
-  pendingAvatar: '✨',
-  notification: ''
+  currentUser: null,
+  room: null,
+  avatarChoice: '🌙'
 };
 
-const avatarCatalog = ['🌙', '🦊', '🐻', '🚀', '🧚', '😹', '🍓', '🌸', '🍕', '🧁'];
+const avatarList = ['🌙', '🦊', '🐻', '🚀', '🧚', '😹', '🍓', '🌸', '🍕', '🧁'];
 
-const refs = {
+const els = {
   welcomeView: document.getElementById('welcomeView'),
   roomView: document.getElementById('roomView'),
+  createPanel: document.getElementById('createPanel'),
+  joinPanel: document.getElementById('joinPanel'),
   createForm: document.getElementById('createForm'),
   joinForm: document.getElementById('joinForm'),
-  avatarOptions: document.querySelectorAll('.avatar-option'),
-  roomName: document.getElementById('roomName'),
-  roomCode: document.getElementById('roomCode'),
-  roomTitle: document.getElementById('roomTitle'),
-  roomCodeBlock: document.getElementById('roomCodeBlock'),
-  roomMeta: document.getElementById('roomMeta'),
-  navButtons: document.querySelectorAll('.nav-item'),
-  tabPanels: document.querySelectorAll('.tab-panel'),
   formNotice: document.getElementById('formNotice'),
+  openCreate: document.getElementById('openCreate'),
+  openJoin: document.getElementById('openJoin'),
+  roomTitle: document.getElementById('roomTitle'),
+  roomCodeDisplay: document.getElementById('roomCodeDisplay'),
+  roomBadge: document.getElementById('roomBadge'),
+  copyRoomCode: document.getElementById('copyRoomCode'),
+  tabButtons: document.querySelectorAll('.nav-item'),
+  tabPanels: document.querySelectorAll('.tab-panel'),
   chatList: document.getElementById('chatList'),
   chatInput: document.getElementById('chatInput'),
-  chatForm: document.getElementById('chatForm'),
-  memberList: document.getElementById('memberList'),
-  profileSummary: document.getElementById('profileSummary')
+  messageForm: document.getElementById('messageForm'),
+  quizArea: document.getElementById('quizArea'),
+  pollArea: document.getElementById('pollArea'),
+  gameArea: document.getElementById('gameArea'),
+  midnightArea: document.getElementById('midnightArea'),
+  leaderboardArea: document.getElementById('leaderboardArea'),
+  membersArea: document.getElementById('membersArea'),
+  profileArea: document.getElementById('profileArea'),
+  settingsArea: document.getElementById('settingsArea')
 };
 
 function setView(view) {
   appState.currentView = view;
-  refs.welcomeView.classList.toggle('hidden', view !== 'welcome');
-  refs.roomView.classList.toggle('hidden', view !== 'room');
+  els.welcomeView.classList.toggle('hidden', view !== 'welcome');
+  els.roomView.classList.toggle('hidden', view !== 'room');
 }
 
-function setNotification(message) {
-  refs.formNotice.textContent = message || '';
-  refs.formNotice.style.display = message ? 'block' : 'none';
+function setNotice(message, type = 'error') {
+  if (!message) {
+    els.formNotice.classList.add('hidden');
+    els.formNotice.textContent = '';
+    return;
+  }
+  els.formNotice.textContent = message;
+  els.formNotice.classList.remove('hidden');
+  els.formNotice.style.background = type === 'success' ? 'rgba(139, 229, 200, 0.12)' : 'rgba(255, 158, 203, 0.12)';
+  els.formNotice.style.borderColor = type === 'success' ? 'rgba(139, 229, 200, 0.22)' : 'rgba(255, 158, 203, 0.2)';
+  els.formNotice.style.color = type === 'success' ? '#dffef3' : '#ffdff0';
 }
 
-function setAvatarSelection(value) {
-  appState.pendingAvatar = value;
-  refs.avatarOptions.forEach(option => {
-    option.classList.toggle('selected', option.dataset.avatar === value);
+function buildAvatarGrid(rootId) {
+  const root = document.getElementById(rootId);
+  root.innerHTML = '';
+  avatarList.forEach((emoji) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'avatar-chip-option';
+    btn.textContent = emoji;
+    btn.dataset.avatar = emoji;
+    btn.addEventListener('click', () => {
+      appState.avatarChoice = emoji;
+      document.querySelectorAll('.avatar-chip-option').forEach((item) => {
+        item.classList.toggle('selected', item.dataset.avatar === emoji);
+      });
+    });
+    if (emoji === '🌙') btn.classList.add('selected');
+    root.appendChild(btn);
   });
 }
 
-function handleCreateRoom(event) {
-  event.preventDefault();
-  const formData = new FormData(refs.createForm);
-  const payload = {
-    roomName: formData.get('roomName'),
-    displayName: formData.get('displayName'),
-    avatar: appState.pendingAvatar
-  };
-
-  fetch('/api/rooms/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-    .then(async response => {
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Could not create room.');
-      }
-      return data;
-    })
-    .then(data => {
-      appState.currentRoom = data.room.roomName;
-      appState.currentMember = {
-        displayName: data.room.displayName,
-        avatar: data.room.avatar,
-        memberId: data.room.memberId
-      };
-      refs.roomTitle.textContent = data.room.roomName;
-      refs.roomCodeBlock.textContent = data.room.roomCode;
-      refs.roomMeta.innerHTML = `
-        <div class="badge">🛡 Private Room</div>
-        <div class="badge">${data.room.avatar} ${data.room.displayName}</div>
-      `;
-      setView('room');
-      loadRoomData(data.room.roomName, data.room.roomCode, data.room.memberId, true);
-    })
-    .catch(error => {
-      setNotification(error.message || 'Looks like the vibe got interrupted. Trying again...');
-    });
+function togglePanel(panelId) {
+  els.createPanel.classList.toggle('hidden', panelId !== 'create');
+  els.joinPanel.classList.toggle('hidden', panelId !== 'join');
 }
 
-function handleJoinRoom(event) {
+els.openCreate.addEventListener('click', () => togglePanel('create'));
+els.openJoin.addEventListener('click', () => togglePanel('join'));
+
+buildAvatarGrid('createAvatarGrid');
+buildAvatarGrid('joinAvatarGrid');
+
+els.createForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const payload = {
-    roomName: refs.roomName.value,
-    roomCode: refs.roomCode.value,
+    roomName: document.getElementById('createRoomName').value,
+    displayName: document.getElementById('createDisplayName').value,
+    avatar: appState.avatarChoice
+  };
+
+  try {
+    const response = await fetch('/api/rooms/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Could not create room.');
+
+    appState.currentUser = {
+      id: data.room.memberId,
+      displayName: data.room.displayName,
+      avatar: data.room.avatar
+    };
+    appState.room = {
+      id: data.room.id,
+      roomName: data.room.roomName,
+      roomCode: data.room.roomCode,
+      members: [{ id: data.room.memberId, displayName: data.room.displayName, avatar: data.room.avatar, points: 10, status: 'online', badges: ['✨ New Club Member'] }],
+      messages: [{ id: 'welcome', senderId: data.room.memberId, displayName: data.room.displayName, avatar: data.room.avatar, message: 'Welcome! The room is ready ✨', timestamp: new Date().toISOString() }],
+      polls: [],
+      quizzes: [],
+      games: [],
+      midnight: { phase: 'night', round: 1, roles: [] }
+    };
+
+    setView('room');
+    setNotice('Room created successfully ✨', 'success');
+    renderRoom();
+  } catch (error) {
+    setNotice(error.message || 'Looks like the vibe got interrupted. Trying again...');
+  }
+});
+
+els.joinForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const payload = {
+    roomName: document.getElementById('joinRoomName').value,
+    roomCode: document.getElementById('joinRoomCode').value,
     displayName: document.getElementById('joinDisplayName').value,
-    avatar: appState.pendingAvatar
+    avatar: appState.avatarChoice
   };
 
-  fetch('/api/rooms/join', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-    .then(async response => {
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Could not join room.');
-      }
-      return data;
-    })
-    .then(data => {
-      appState.currentRoom = data.room.roomName;
-      appState.currentMember = {
-        displayName: data.room.displayName,
-        avatar: data.room.avatar,
-        memberId: data.room.memberId
-      };
-      refs.roomTitle.textContent = data.room.roomName;
-      refs.roomCodeBlock.textContent = data.room.roomCode;
-      refs.roomMeta.innerHTML = `
-        <div class="badge">🔒 Private Room</div>
-        <div class="badge">${data.room.avatar} ${data.room.displayName}</div>
-      `;
-      setView('room');
-      setNotification('');
-      loadRoomData(data.room.roomName, data.room.roomCode, data.room.memberId, false);
-    })
-    .catch(error => {
-      setNotification(error.message || 'Looks like the vibe got interrupted. Trying again...');
+  try {
+    const response = await fetch('/api/rooms/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Could not join the room.')
+
+    appState.currentUser = {
+      id: data.room.memberId,
+      displayName: data.room.displayName,
+      avatar: data.room.avatar
+    };
+    appState.room = {
+      id: data.room.id,
+      roomName: data.room.roomName,
+      roomCode: data.room.roomCode,
+      members: [{ id: data.room.memberId, displayName: data.room.displayName, avatar: data.room.avatar, points: 10, status: 'online', badges: ['✨ First Visit'] }],
+      messages: [{ id: 'welcome', senderId: data.room.memberId, displayName: data.room.displayName, avatar: data.room.avatar, message: 'Hi room! I just joined ✨', timestamp: new Date().toISOString() }],
+      polls: [],
+      quizzes: [],
+      games: [],
+      midnight: { phase: 'night', round: 1, roles: [] }
+    };
+
+    setView('room');
+    setNotice('', 'success');
+    renderRoom();
+  } catch (error) {
+    setNotice(error.message || 'Looks like the vibe got interrupted. Trying again...');
+  }
+});
+
+async function loadRoom(roomId, memberId) {
+  const response = await fetch(`/api/rooms/${roomId}?memberId=${memberId}`);
+  const data = await response.json();
+  if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load room.');
+  appState.room = data.room;
+  appState.currentUser = data.member;
+  renderRoom();
 }
 
-function loadRoomData(roomName, roomCode, memberId, created) {
-  const roomLookup = roomName;
-  fetch(`/api/rooms/${findRoomIdByName(roomName, roomCode)}?memberId=${memberId}`)
-    .then(async response => {
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Private room access denied.');
-      }
-      return data;
-    })
-    .then(data => {
-      appState.roomData = data.room;
-      renderRoom(data.room, data.member);
-      setCurrentTab('chat');
-    })
-    .catch(error => {
-      console.warn(error);
-      fallbackRoomData(roomName, memberId, created);
-    });
+function renderRoom() {
+  if (!appState.room || !appState.currentUser) return;
+
+  els.roomTitle.textContent = appState.room.roomName;
+  els.roomCodeDisplay.textContent = appState.room.roomCode;
+  els.roomBadge.textContent = '🔒 PRIVATE ROOM';
+
+  renderChat();
+  renderQuizzes();
+  renderPolls();
+  renderGames();
+  renderMidnight();
+  renderLeaderboard();
+  renderMembers();
+  renderProfile();
+  renderSettings();
 }
 
-function findRoomIdByName(roomName, roomCode) {
-  return 'demo-room';
-}
+function renderChat() {
+  const room = appState.room;
+  const currentUserId = appState.currentUser.id;
+  const messages = room.messages || [];
+  els.chatList.innerHTML = '';
 
-function fallbackRoomData(roomName, memberId, created) {
-  const sampleRoom = {
-    id: 'demo-room',
-    uniqueRoomName: roomName,
-    roomCode: 'VX7K92',
-    members: [
-      { id: memberId, displayName: appState.currentMember.displayName, avatar: appState.currentMember.avatar, joinedAt: new Date().toISOString(), points: 240, status: 'online', badges: ['✨ New Club Member'] },
-      { id: 'm-2', displayName: 'Luna', avatar: '🦊', joinedAt: new Date().toISOString(), points: 420, status: 'online', badges: ['🌙 Midnight Survivor'] },
-      { id: 'm-3', displayName: 'Nova', avatar: '🚀', joinedAt: new Date().toISOString(), points: 360, status: 'online', badges: ['🧠 Big Brain'] },
-      { id: 'm-4', displayName: 'Milo', avatar: '🐻', joinedAt: new Date().toISOString(), points: 310, status: 'away', badges: ['🎮 Game Night Legend'] }
-    ],
-    messages: [
-      { id: 'msg-1', senderId: memberId, displayName: appState.currentMember.displayName, avatar: appState.currentMember.avatar, message: created ? 'I just created our room and the vibe is glowing ✨' : 'I just walked in and the mood is perfect ✨', timestamp: new Date().toISOString() },
-      { id: 'msg-2', senderId: 'm-2', displayName: 'Luna', avatar: '🦊', message: 'Okay, let us do a quiz before midnight! 😄', timestamp: new Date().toISOString() },
-      { id: 'msg-3', senderId: 'm-3', displayName: 'Nova', avatar: '🚀', message: 'I am already planning a surprise poll.', timestamp: new Date().toISOString() }
-    ],
-    polls: [
-      { id: 'poll-1', question: 'What should we play today?', options: ['Mystery game', 'Quiz battle', 'Movie night', 'Cozy chat'], closesAt: new Date(Date.now() + 86400000).toISOString(), votes: [0, 1, 2] }
-    ],
-    quizzes: [{ id: 'quiz-1', title: 'Moonlight Warmup', description: 'A little spark to get everyone going.', questions: [{ question: 'Which color is the room vibe most famous for?', options: ['Indigo', 'Red', 'Green', 'Orange'], correctIndex: 0, timer: 25, points: 10 }] }],
-    games: [{ id: 'game-1', type: 'WHO SAID THAT?', status: 'ready' }, { id: 'game-2', type: 'MOST LIKELY TO', status: 'ready' }],
-    midnight: { phase: 'night', round: 1, roles: [{ id: memberId, role: 'CITIZEN' }] }
-  };
-  appState.roomData = sampleRoom;
-  renderRoom(sampleRoom, { id: memberId, displayName: appState.currentMember.displayName, avatar: appState.currentMember.avatar });
-}
-
-function renderRoom(room, member) {
-  const currentMember = member || room.members[0];
-  refs.roomTitle.textContent = room.uniqueRoomName || room.roomName || appState.currentRoom;
-  refs.roomCodeBlock.textContent = room.roomCode || 'VX7K92';
-  refs.roomMeta.innerHTML = `
-    <div class="badge">🔒 PRIVATE ROOM</div>
-    <div class="badge">${currentMember.avatar} ${currentMember.displayName}</div>
-  `;
-  renderChat(room.messages, currentMember);
-  renderMembers(room.members);
-  renderProfile(currentMember, room);
-}
-
-function setCurrentTab(tab) {
-  appState.activeTab = tab;
-  refs.navButtons.forEach(button => {
-    button.classList.toggle('active', button.dataset.tab === tab);
-  });
-  refs.tabPanels.forEach(panel => {
-    panel.classList.toggle('active', panel.dataset.panel === tab);
-  });
-}
-
-function renderChat(messages, currentMember) {
-  refs.chatList.innerHTML = '';
-
-  if (!messages || messages.length === 0) {
-    refs.chatList.innerHTML = '<div class="empty-state">It\'s quiet in here... someone say something 👀</div>';
+  if (!messages.length) {
+    els.chatList.innerHTML = '<div class="empty-state">It\'s quiet in here... someone say something 👀</div>';
     return;
   }
 
-  messages.forEach(message => {
+  messages.forEach((message) => {
     const bubble = document.createElement('div');
-    const self = message.senderId === currentMember.id || message.displayName === currentMember.displayName;
-    bubble.className = `message-bubble ${self ? 'self' : ''}`;
+    const isSelf = message.senderId === currentUserId;
+    bubble.className = `message-bubble ${isSelf ? 'self' : ''}`;
     bubble.innerHTML = `
-      <div class="avatar-chip">${message.avatar || '✨'}</div>
+      <div class="avatar-mini">${message.avatar || '✨'}</div>
       <div>
         <div class="message-meta">
-          <span class="message-name">${message.displayName}</span>
+          <span class="message-author">${message.displayName}</span>
           <span class="message-time">${new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
         <div class="message-text">${message.message}</div>
-        <div class="reactions"><span class="reaction">😍</span><span class="reaction">✨</span></div>
+        <div class="reactions"><span>😍</span><span>✨</span></div>
       </div>
     `;
-    refs.chatList.appendChild(bubble);
+    els.chatList.appendChild(bubble);
   });
 
-  refs.chatList.scrollTop = refs.chatList.scrollHeight;
+  els.chatList.scrollTop = els.chatList.scrollHeight;
 }
 
-function renderMembers(members) {
-  refs.memberList.innerHTML = '';
-  if (!members || members.length === 0) {
-    refs.memberList.innerHTML = '<div class="empty-state">No members yet — the room is quiet.</div>';
-    return;
-  }
+function renderQuizzes() {
+  const quizzes = appState.room.quizzes && appState.room.quizzes.length ? appState.room.quizzes : [{
+    title: 'Moonlight Warmup',
+    description: 'A little spark to get everyone going.',
+    questions: [{ question: 'Which color is the room vibe most famous for?', options: ['Indigo', 'Red', 'Green', 'Orange'], correctIndex: 0, timer: 25, points: 10 }]
+  }];
 
-  members.forEach(member => {
-    const item = document.createElement('div');
-    item.className = 'member-item';
-    item.innerHTML = `
-      <div class="member-main">
-        <div class="avatar-chip">${member.avatar}</div>
-        <div>
-          <strong>${member.displayName}</strong>
-          <div class="badge-row">
-            ${member.badges && member.badges.length ? member.badges.map(badge => `<span class="badge">${badge}</span>`).join('') : '<span class="badge">🏆 Member</span>'}
-          </div>
-        </div>
+  els.quizArea.innerHTML = quizzes.map((quiz) => `
+    <div class="card">
+      <h4>${quiz.title}</h4>
+      <p>${quiz.description || 'This room is buzzing.'}</p>
+      <div class="badge-row">
+        <span class="badge">🎯 ${quiz.questions.length} questions</span>
+        <span class="badge">⚡ ${quiz.questions[0]?.timer || 25}s</span>
       </div>
-      <div class="badge">${member.points || 0} pts</div>
-    `;
-    refs.memberList.appendChild(item);
-  });
+      <div class="stat-row" style="margin-top:12px;"><span>Correct Answers</span><strong>8/10</strong></div>
+      <div class="stat-row"><span>Points Earned</span><strong>+80</strong></div>
+    </div>
+  `).join('');
 }
 
-function renderProfile(member, room) {
-  refs.profileSummary.innerHTML = `
-    <div class="member-item">
-      <div class="member-main">
-        <div class="avatar-chip" style="width:56px;height:56px;font-size:2rem;">${member.avatar}</div>
-        <div>
-          <div style="font-size:1.2rem;font-weight:700;">${member.displayName}</div>
-          <div style="color:var(--text-soft)">Level 8 • Vibe Champion</div>
-        </div>
+function renderPolls() {
+  const polls = appState.room.polls && appState.room.polls.length ? appState.room.polls : [{
+    question: 'What should we play today?',
+    options: ['Mystery game', 'Quiz battle', 'Movie night', 'Cozy chat'],
+    votes: [2, 5, 3, 2]
+  }];
+
+  els.pollArea.innerHTML = polls.map((poll) => `
+    <div class="card">
+      <h4>${poll.question}</h4>
+      <div class="stat-list">
+        ${poll.options.map((option, index) => `<div class="stat-row"><span>${option}</span><strong>${poll.votes?.[index] ?? 0}</strong></div>`).join('')}
       </div>
     </div>
-    <div class="stat-row"><span>Total Points</span><strong>${member.points || 240}</strong></div>
-    <div class="stat-row"><span>Quiz Wins</span><strong>8</strong></div>
-    <div class="stat-row"><span>Game Nights</span><strong>12</strong></div>
-    <div class="stat-row"><span>Favorite mode</span><strong>Midnight</strong></div>
-    <div class="badge-row">
-      <span class="badge">🌟 Quiz Master</span>
-      <span class="badge">🏆 Vibe Champion</span>
-      <span class="badge">🎭 Mystery Master</span>
+  `).join('');
+}
+
+function renderGames() {
+  const games = appState.room.games && appState.room.games.length ? appState.room.games : [
+    { type: 'WHO SAID THAT?' },
+    { type: 'MOST LIKELY TO' },
+    { type: 'FRIEND TRIVIA' },
+    { type: 'SPEED QUIZ' }
+  ];
+
+  els.gameArea.innerHTML = games.map((game) => `
+    <div class="card">
+      <h4>${game.type}</h4>
+      <p>Private room challenge with points, mystery, and lots of energy.</p>
+      <div class="badge-row"><span class="badge">🎮 Ready</span></div>
+    </div>
+  `).join('');
+}
+
+function renderMidnight() {
+  const phase = appState.room.midnight?.phase || 'night';
+  const round = appState.room.midnight?.round || 1;
+  els.midnightArea.innerHTML = `
+    <div class="midnight-scene">
+      <div class="starfield"></div>
+      <div class="moon"></div>
+      <div class="midnight-panel">
+        <h4>🌙 MIDNIGHT — Round ${round}</h4>
+        <p>Phase: ${phase.toUpperCase()}</p>
+        <div class="badge-row">
+          <span class="badge">🔎 Detective</span>
+          <span class="badge">🛡 Guardian</span>
+          <span class="badge">🎭 Imposter</span>
+          <span class="badge">👤 Citizen</span>
+        </div>
+      </div>
     </div>
   `;
 }
 
-function sendMessage(event) {
-  event.preventDefault();
-  if (!appState.roomData || !appState.currentMember) {
-    return;
-  }
-
-  const text = refs.chatInput.value.trim();
-  if (!text) {
-    return;
-  }
-
-  const payload = {
-    memberId: appState.currentMember.memberId || appState.currentMember.id,
-    message: text
-  };
-
-  fetch(`/api/rooms/${appState.roomData.id}/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-    .then(async response => {
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Could not send message.');
-      }
-      return data;
-    })
-    .then(data => {
-      refs.chatInput.value = '';
-      const roomMessages = appState.roomData.messages || [];
-      roomMessages.push({
-        id: data.message.id,
-        senderId: payload.memberId,
-        displayName: appState.currentMember.displayName,
-        avatar: appState.currentMember.avatar,
-        message: text,
-        timestamp: new Date().toISOString()
-      });
-      appState.roomData.messages = roomMessages;
-      renderChat(roomMessages, appState.currentMember);
-    })
-    .catch(() => {
-      const roomMessages = appState.roomData.messages || [];
-      roomMessages.push({
-        id: `local-${Date.now()}`,
-        senderId: payload.memberId,
-        displayName: appState.currentMember.displayName,
-        avatar: appState.currentMember.avatar,
-        message: text,
-        timestamp: new Date().toISOString()
-      });
-      appState.roomData.messages = roomMessages;
-      renderChat(roomMessages, appState.currentMember);
-      refs.chatInput.value = '';
-    });
+function renderLeaderboard() {
+  const members = appState.room.members || [];
+  const sorted = [...members].sort((a, b) => (b.points || 0) - (a.points || 0));
+  els.leaderboardArea.innerHTML = `
+    <div class="card">
+      <div class="stat-list">
+        ${sorted.slice(0, 5).map((member, index) => `
+          <div class="stat-row">
+            <span>#${index + 1} ${member.displayName}</span>
+            <strong>${member.points || 0} pts</strong>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
 }
 
-refs.avatarOptions.forEach(option => {
-  option.addEventListener('click', () => setAvatarSelection(option.dataset.avatar));
+function renderMembers() {
+  const members = appState.room.members || [];
+  els.membersArea.innerHTML = `
+    <div class="member-list">
+      ${members.map((member) => `
+        <div class="member-item">
+          <div class="member-left">
+            <div class="avatar-mini">${member.avatar}</div>
+            <div class="member-meta">
+              <strong>${member.displayName}</strong>
+              <span>${member.status || 'online'}</span>
+            </div>
+          </div>
+          <div class="badge">${member.points || 0} pts</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderProfile() {
+  const user = appState.currentUser || { displayName: 'Guest', avatar: '✨', points: 0 };
+  els.profileArea.innerHTML = `
+    <div class="card">
+      <div class="member-left" style="margin-bottom:12px;">
+        <div class="avatar-mini" style="width:62px;height:62px;font-size:2rem;">${user.avatar}</div>
+        <div class="member-meta">
+          <strong>${user.displayName}</strong>
+          <span>Level 8 • Vibe Champion</span>
+        </div>
+      </div>
+      <div class="stat-list">
+        <div class="stat-row"><span>Total points</span><strong>${user.points || 240}</strong></div>
+        <div class="stat-row"><span>Quiz stats</span><strong>8 wins</strong></div>
+        <div class="stat-row"><span>Game stats</span><strong>12 nights</strong></div>
+        <div class="stat-row"><span>Favorite game</span><strong>Midnight</strong></div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">🌟 Quiz Master</span>
+        <span class="badge">🏆 Vibe Champion</span>
+        <span class="badge">🎭 Mystery Master</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderSettings() {
+  els.settingsArea.innerHTML = `
+    <div class="card">
+      <h4>Room settings</h4>
+      <div class="stat-list">
+        <div class="stat-row"><span>Room name</span><strong>${appState.room.roomName}</strong></div>
+        <div class="stat-row"><span>Room code</span><strong>${appState.room.roomCode}</strong></div>
+        <div class="stat-row"><span>Privacy</span><strong>Private</strong></div>
+      </div>
+    </div>
+  `;
+}
+
+els.tabButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    appState.activeTab = button.dataset.tab;
+    els.tabButtons.forEach((btn) => btn.classList.toggle('active', btn === button));
+    els.tabPanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === appState.activeTab));
+  });
 });
 
-refs.createForm.addEventListener('submit', handleCreateRoom);
-refs.joinForm.addEventListener('submit', handleJoinRoom);
-refs.navButtons.forEach(button => {
-  button.addEventListener('click', () => setCurrentTab(button.dataset.tab));
+els.copyRoomCode.addEventListener('click', async () => {
+  const value = appState.room?.roomCode || 'VX7K92';
+  try {
+    await navigator.clipboard.writeText(value);
+    setNotice('Room code copied ✨', 'success');
+  } catch {
+    setNotice('Copy failed, but the code is still visible above.');
+  }
 });
-refs.chatForm.addEventListener('submit', sendMessage);
 
-setAvatarSelection('🌙');
+els.messageForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const text = els.chatInput.value.trim();
+  if (!text || !appState.room || !appState.currentUser) return;
+
+  try {
+    const response = await fetch(`/api/rooms/${appState.room.id}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberId: appState.currentUser.id, message: text })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Could not send');
+
+    appState.room.messages.push({
+      id: data.message.id,
+      senderId: appState.currentUser.id,
+      displayName: appState.currentUser.displayName,
+      avatar: appState.currentUser.avatar,
+      message: text,
+      timestamp: new Date().toISOString()
+    });
+
+    els.chatInput.value = '';
+    renderChat();
+  } catch {
+    appState.room.messages.push({
+      id: `local-${Date.now()}`,
+      senderId: appState.currentUser.id,
+      displayName: appState.currentUser.displayName,
+      avatar: appState.currentUser.avatar,
+      message: text,
+      timestamp: new Date().toISOString()
+    });
+    els.chatInput.value = '';
+    renderChat();
+  }
+});
+
 setView('welcome');
-setCurrentTab('chat');
-setNotification('');
+setNotice('');
+

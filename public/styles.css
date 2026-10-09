@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AURA VIBE</title>
+    <meta name="description" content="AURA VIBE — Your people. Your vibe. Your room." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <section id="welcomeView" class="screen welcome-screen">
+        <div class="hero-bg">
+          <span class="orb orb-one"></span>
+          <span class="orb orb-two"></span>
+          <div class="cloud cloud-one"></div>
+          <div class="cloud cloud-two"></div>
+          <div class="cloud cloud-three"></div>
+        </div>
+
+        <header class="topbar">
+          <nav class="container topbar-inner">
+            <div class="brand-wrap">
+              <div class="brand-mark"><img src="/logo.svg" alt="AURA VIBE logo" /></div>
+              <span>AURA VIBE</span>
+            </div>
+          </nav>
+        </header>
+
+        <main class="hero container">
+          <div class="hero-inner">
+            <div class="logo-panel">
+              <img src="/logo.svg" alt="AURA VIBE logo" />
+            </div>
+
+            <h1>Your people. Your vibe. Your room.</h1>
+
+            <div class="hero-actions">
+              <button id="openCreate" class="primary-btn">Create a room</button>
+              <button id="openJoin" class="secondary-btn">Join a room</button>
+            </div>
+          </div>
+        </main>
+
+        <div class="container form-shell">
+          <div id="createPanel" class="form-panel hidden">
+            <form id="createForm" class="form-grid">
+              <div class="field full">
+                <label for="createRoomName">Room Name</label>
+                <input id="createRoomName" name="roomName" type="text" placeholder="Moonlight Squad" required />
+              </div>
+
+              <div class="field">
+                <label for="createDisplayName">Display Name</label>
+                <input id="createDisplayName" name="displayName" type="text" placeholder="Nova" required />
+              </div>
+
+              <div class="field">
+                <label>Avatar</label>
+                <div class="avatar-grid" id="createAvatarGrid"></div>
+              </div>
+
+              <div class="field full action-row">
+                <button type="submit" class="primary-btn">Create private room</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="joinPanel" class="form-panel hidden">
+            <form id="joinForm" class="form-grid">
+              <div class="field">
+                <label for="joinRoomName">Room Name</label>
+                <input id="joinRoomName" name="roomName" type="text" placeholder="Moonlight Squad" required />
+              </div>
+
+              <div class="field">
+                <label for="joinRoomCode">Room Code</label>
+                <input id="joinRoomCode" name="roomCode" type="text" placeholder="VX7K92" maxlength="6" required />
+              </div>
+
+              <div class="field">
+                <label for="joinDisplayName">Display Name</label>
+                <input id="joinDisplayName" name="displayName" type="text" placeholder="Aster" required />
+              </div>
+
+              <div class="field">
+                <label>Avatar</label>
+                <div class="avatar-grid" id="joinAvatarGrid"></div>
+              </div>
+
+              <div class="field full action-row">
+                <button type="submit" class="primary-btn">Enter the room</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="formNotice" class="form-notice hidden"></div>
+        </div>
+      </section>
+
+      <section id="roomView" class="screen room-screen hidden">
+        <header class="topbar room-header-bar">
+          <div class="container topbar-inner room-topbar">
+            <div class="brand-wrap">
+              <div class="brand-mark"><img src="/logo.svg" alt="AURA VIBE logo" /></div>
+              <span>AURA VIBE</span>
+            </div>
+            <div class="room-badges">
+              <span id="roomBadge" class="pill">🔒 PRIVATE ROOM</span>
+            </div>
+          </div>
+        </header>
+
+        <main class="container room-shell">
+          <div class="room-heading-row">
+            <div>
+              <p class="eyebrow">Private clubhouse</p>
+              <h2 id="roomTitle">Your room</h2>
+            </div>
+            <div class="code-card">
+              <span>Room code</span>
+              <strong id="roomCodeDisplay">VX7K92</strong>
+              <button id="copyRoomCode" class="tiny-btn">Copy</button>
+            </div>
+          </div>
+
+          <div class="main-layout">
+            <aside class="side-panel">
+              <nav class="nav-column" aria-label="Main navigation">
+                <button class="nav-item active" data-tab="chat">💬 Chat</button>
+                <button class="nav-item" data-tab="quizzes">🧠 Quizzes</button>
+                <button class="nav-item" data-tab="polls">📊 Polls</button>
+                <button class="nav-item" data-tab="games">🎮 Games</button>
+                <button class="nav-item" data-tab="midnight">🌙 MIDNIGHT</button>
+                <button class="nav-item" data-tab="leaderboard">🏆 Leaderboard</button>
+                <button class="nav-item" data-tab="members">👥 Members</button>
+                <button class="nav-item" data-tab="profile">👤 Profile</button>
+                <button class="nav-item" data-tab="settings">⚙ Settings</button>
+              </nav>
+            </aside>
+
+            <div class="content-panel">
+              <div class="tab-panel active" data-panel="chat">
+                <div class="chat-layout">
+                  <div class="chat-head">
+                    <h3>Room chat</h3>
+                    <span class="pill subtle">Private group</span>
+                  </div>
+                  <div id="chatList" class="chat-list"></div>
+                  <form id="messageForm" class="chat-form">
+                    <input id="chatInput" type="text" placeholder="Send a message to the room..." maxlength="280" />
+                    <button type="submit" class="primary-btn">Send</button>
+                  </form>
+                </div>
+              </div>
+
+              <div class="tab-panel" data-panel="quizzes">
+                <div class="section-head">
+                  <h3>Quizzes</h3>
+                  <button class="soft-btn" id="startQuizBtn">Create quiz</button>
+                </div>
+                <div id="quizArea" class="stack"></div>
+              </div>
+
+              <div class="tab-panel" data-panel="polls">
+                <div class="section-head">
+                  <h3>Daily Polls</h3>
+                  <button class="soft-btn" id="createPollBtn">Create poll</button>
+                </div>
+                <div id="pollArea" class="stack"></div>
+              </div>
+
+              <div class="tab-panel" data-panel="games">
+                <h3>Games Hub</h3>
+                <div id="gameArea" class="card-grid"></div>
+              </div>
+
+              <div class="tab-panel" data-panel="midnight">
+                <h3>MIDNIGHT</h3>
+                <div id="midnightArea" class="stack"></div>
+              </div>
+
+              <div class="tab-panel" data-panel="leaderboard">
+                <h3>Vibe Leaderboard</h3>
+                <div id="leaderboardArea" class="stack"></div>
+              </div>
+
+              <div class="tab-panel" data-panel="members">
+                <h3>Members</h3>
+                <div id="membersArea" class="stack"></div>
+              </div>
+
+              <div class="tab-panel" data-panel="profile">
+                <h3>Profile</h3>
+                <div id="profileArea" class="stack"></div>
+              </div>
+
+              <div class="tab-panel" data-panel="settings">
+                <h3>Settings</h3>
+                <div id="settingsArea" class="stack"></div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </section>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+
