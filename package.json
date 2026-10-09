@@ -1,0 +1,24 @@
+{
+  "name": "aura-vibe",
+  "version": "1.0.0",
+  "description": "AURA VIBE private social clubhouse",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "social",
+    "clubhouse",
+    "private-room",
+    "quiz",
+    "polls",
+    "games"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "uuid": "^9.1.0"
+  }
+}
